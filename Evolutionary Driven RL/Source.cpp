@@ -16,25 +16,35 @@ int main()
 	curandCreateGenerator(&curandGenerator, CURAND_RNG_PSEUDO_DEFAULT);
 	curandSetPseudoRandomGeneratorSeed(curandGenerator, 1234ULL);
 
+	/*float in = 1.0f / 3.0f;
+	half cpuInput = __float2half(in);
+	printf("Input: %f\n", in);
+	printf("Input: %f\n", __half2float(cpuInput));*/
+
 	const uint32_t INPUTS = 3;
 	const uint32_t OUTPUTS = 2;
 
-	float* gpuInputMatrix;
-	float* gpuWeightMatrix;
-	float* gpuOutputMatrix;
+	half* gpuInputMatrix;
+	half* gpuWeightMatrix;
+	half* gpuOutputMatrix;
+	
+	half* cpuInputMatrix = (half*)malloc(INPUTS << 1);
+	half* cpuWeightMatrix = (half*)malloc(INPUTS * OUTPUTS << 1);
+	half* cpuOutputMatrix = (half*)malloc(OUTPUTS << 1);
 
-	float* cpuInputMatrix = new float[INPUTS];
-	float* cpuWeightMatrix = new float[INPUTS * OUTPUTS];
-	float* cpuOutputMatrix = new float[OUTPUTS];
+	cudaMalloc(&gpuInputMatrix, INPUTS << 1);
+	cudaMalloc(&gpuWeightMatrix, INPUTS * OUTPUTS << 1);
+	cudaMalloc(&gpuOutputMatrix, OUTPUTS << 1);
+	
+	curandGenerateUniformEx(curandGenerator, gpuInputMatrix, INPUTS);
+	curandGenerateUniformEx(curandGenerator, gpuWeightMatrix, INPUTS * OUTPUTS);
+	
+	cudaMemcpy(cpuInputMatrix, gpuInputMatrix, INPUTS << 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuWeightMatrix, gpuWeightMatrix, INPUTS * OUTPUTS << 1, cudaMemcpyDeviceToHost);
+	PrintMatrixHalf(cpuInputMatrix, INPUTS, 1, "Input");
+	PrintMatrixHalf(cpuWeightMatrix, INPUTS, OUTPUTS, "Weight");
 
-	cudaMalloc(&gpuInputMatrix, INPUTS << 2);
-	cudaMalloc(&gpuWeightMatrix, INPUTS * OUTPUTS << 2);
-	cudaMalloc(&gpuOutputMatrix, OUTPUTS << 2);
-
-	curandGenerateUniformEx(curandGenerator, gpuInputMatrix, INPUTS, -1.0f, 1.0f);
-	curandGenerateUniformEx(curandGenerator, gpuWeightMatrix, INPUTS * OUTPUTS, -1.0f, 1.0f);
-
-	float alpha = 1.0f;
+	/*float alpha = 1.0f;
 	float beta = 0.0f;
 	cublasGemmStridedBatchedEx(
 		cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
@@ -53,7 +63,7 @@ int main()
 	
 	PrintMatrix(cpuInputMatrix, INPUTS, 1, "Input");
 	PrintMatrix(cpuWeightMatrix, INPUTS, OUTPUTS, "Weight");
-	PrintMatrix(cpuOutputMatrix, OUTPUTS, 1, "Output");
+	PrintMatrix(cpuOutputMatrix, OUTPUTS, 1, "Output");*/
 	
 	curandDestroyGenerator(curandGenerator);
 	cublasDestroy(cublasHandle);
