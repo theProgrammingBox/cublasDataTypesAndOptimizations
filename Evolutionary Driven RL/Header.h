@@ -1,5 +1,6 @@
 #pragma once
 #include <cuda_fp16.h>
+#include <cuda_fp8.h>
 #include <cublas_v2.h>
 #include <curand.h>
 #include <cuda_runtime.h>
@@ -58,6 +59,7 @@ void Relu(half* input, half* output, uint32_t size)
 	GpuRelu << <std::ceil(0.0009765625f * size), 1024 >> > (input, output, size);
 }
 
+/*
 __global__ void GpuRelu2(half* input, half* output, uint32_t size)
 {
 	if (index < size)
@@ -72,3 +74,4 @@ void Relu2(half* input, half* output, uint32_t size)
 {
 	GpuRelu2 <<<std::ceil(0.0009765625f * size), 1024>>> (input, output, size);
 }
+*/
