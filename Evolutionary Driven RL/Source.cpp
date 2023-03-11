@@ -60,7 +60,7 @@ int main()
 	
 	PrintMatrixHalf(cpuInputMatrix, 1, INPUTS, "Input");
 	PrintMatrixHalf(cpuWeightMatrix, INPUTS, OUTPUTS, "Weight");
-	PrintMatrixHalf(cpuOutputMatrix, OUTPUTS, 1, "Output");
+	PrintMatrixHalf(cpuOutputMatrix, 1, OUTPUTS, "Output");
 	
 	curandDestroyGenerator(curandGenerator);
 	cublasDestroy(cublasHandle);
