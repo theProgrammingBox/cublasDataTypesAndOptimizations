@@ -1,7 +1,8 @@
 #pragma once
-#include "Random.h"
+#include <cublas_v2.h>
+#include <curand.h>
+#include <cuda_runtime.h>
 #include <iostream>
-#include <vector>
 
 void PrintMatrix(float* arr, uint32_t rows, uint32_t cols, const char* label) {
 	printf("%s:\n", label);
@@ -14,80 +15,15 @@ void PrintMatrix(float* arr, uint32_t rows, uint32_t cols, const char* label) {
 	printf("\n");
 }
 
-void cpuSgemmStridedBatched(
-	bool transB, bool transA,
-	int CCols, int CRows, int AColsBRows,
-	const float* alpha,
-	float* B, int ColsB, int SizeB,
-	float* A, int ColsA, int SizeA,
-	const float* beta,
-	float* C, int ColsC, int SizeC,
-	int batchCount)
+__global__ void curandNormalize(float* output, uint32_t size, float min, float range)
 {
-	for (int b = batchCount; b--;)
-	{
-		for (int m = CCols; m--;)
-			for (int n = CRows; n--;)
-			{
-				float sum = 0;
-				for (int k = AColsBRows; k--;)
-					sum += (transA ? A[k * ColsA + n] : A[n * ColsA + k]) * (transB ? B[m * ColsB + k] : B[k * ColsB + m]);
-				C[n * ColsC + m] = *alpha * sum + *beta * C[n * ColsC + m];
-			}
-		A += SizeA;
-		B += SizeB;
-		C += SizeC;
-	}
+	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+	if (index < size)
+		output[index] = output[index] * range + min;
 }
 
-void cpuSaxpy(int N, const float* alpha, const float* X, int incX, float* Y, int incY)
+void curandGenerateUniformEx(curandGenerator_t generator, float* output, uint32_t size, float min, float max)
 {
-	for (int i = N; i--;)
-		Y[i * incY] += *alpha * X[i * incX];
-}
-
-void cpuRelu(float* input, float* output, uint32_t size)
-{
-	for (uint32_t counter = size; counter--;)
-		output[counter] = (*(uint32_t*)(input + counter) >> 31) * input[counter];
-}
-
-void cpuSoftmax(float* input, float* output, uint32_t size)
-{
-	float sum = 0;
-	float max = input[size - 1];
-	for (uint32_t counter = size; counter--;)
-		max = std::max(max, input[counter]);
-	for (uint32_t counter = size; counter--;)
-	{
-		output[counter] = std::exp(input[counter] - max);
-		sum += output[counter];
-	}
-	sum = 1.0f / sum;
-	for (uint32_t counter = size; counter--;)
-		output[counter] *= sum;
-}
-
-float InvSqrt(float number)
-{
-	long i = 0x5F1FFFF9 - (*(long*)&number >> 1);
-	float tmp = *(float*)&i;
-	return tmp * 0.703952253f * (2.38924456f - number * tmp * tmp);
-}
-
-namespace GLOBAL
-{
-	Random RANDOM(Random::MakeSeed());
-	constexpr float ZEROF = 0.0f;
-	constexpr float ONEF = 1.0f;
-
-	constexpr uint32_t BATCH_SIZE = 1;
-	constexpr uint32_t ITERATIONS = 1620 * BATCH_SIZE;
-	constexpr float LEARNING_RATE = 0.1f;
-}
-
-void cpuGenerateUniform(float* matrix, uint32_t size, float min = 0, float max = 1)
-{
-	for (uint32_t counter = size; counter--;)
-		matrix[counter] = GLOBAL::RANDOM.Rfloat(min, max);
+	curandGenerateUniform(generator, output, size);
+	curandNormalize <<<0.0009765625f * size + 1, 1024>>> (output, size, min, max - min);
 }
