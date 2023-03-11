@@ -16,9 +16,10 @@ int main()
 	curandCreateGenerator(&curandGenerator, CURAND_RNG_PSEUDO_DEFAULT);
 	curandSetPseudoRandomGeneratorSeed(curandGenerator, std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
-	const uint32_t INPUTS = 2;
-	const uint32_t OUTPUTS = 10;
+	const uint32_t INPUTS = 3;
+	const uint32_t OUTPUTS = 7;
 
+	//
 	__half* gpuInputMatrix;
 	__half* gpuWeightMatrix;
 	__half* gpuProductMatrix;
@@ -34,8 +35,8 @@ int main()
 	__half* cpuOutputMatrix = (__half*)malloc(OUTPUTS << 1);
 	__half* cpuReluMatrix = (__half*)malloc(OUTPUTS << 1);
 
-	CurandGenerateUniformEx(curandGenerator, gpuInputMatrix, INPUTS);
-	CurandGenerateUniformEx(curandGenerator, gpuWeightMatrix, INPUTS * OUTPUTS);
+	CurandGenerateUniformf16(curandGenerator, gpuInputMatrix, INPUTS);
+	CurandGenerateUniformf16(curandGenerator, gpuWeightMatrix, INPUTS * OUTPUTS);
 
 	const __half alpha = 1.0f;
 	const __half beta = 0.0f;
@@ -52,7 +53,7 @@ int main()
 		1, CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP
 	);
 
-	Relu(gpuProductMatrix, gpuReluMatrix, OUTPUTS);
+	Reluf16(gpuProductMatrix, gpuReluMatrix, OUTPUTS);
 
 	cudaMemcpy(cpuInputMatrix, gpuInputMatrix, INPUTS << 1, cudaMemcpyDeviceToHost);
 	cudaMemcpy(cpuWeightMatrix, gpuWeightMatrix, INPUTS * OUTPUTS << 1, cudaMemcpyDeviceToHost);
@@ -64,9 +65,6 @@ int main()
 	PrintMatrixf16(cpuOutputMatrix, 1, OUTPUTS, "Output");
 	PrintMatrixf16(cpuReluMatrix, 1, OUTPUTS, "Relu");
 
-	cublasDestroy(cublasHandle);
-	curandDestroyGenerator(curandGenerator);
-
 	cudaFree(gpuInputMatrix);
 	cudaFree(gpuWeightMatrix);
 	cudaFree(gpuProductMatrix);
@@ -74,6 +72,10 @@ int main()
 	free(cpuInputMatrix);
 	free(cpuWeightMatrix);
 	free(cpuOutputMatrix);
+	//
+
+	cublasDestroy(cublasHandle);
+	curandDestroyGenerator(curandGenerator);
 
 	return 0;
 }
