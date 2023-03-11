@@ -15,12 +15,7 @@ int main()
 	curandGenerator_t curandGenerator;
 	curandCreateGenerator(&curandGenerator, CURAND_RNG_PSEUDO_DEFAULT);
 	curandSetPseudoRandomGeneratorSeed(curandGenerator, std::chrono::high_resolution_clock::now().time_since_epoch().count());
-
-	/*float in = 1.0f / 3.0f;
-	half cpuInput = __float2half(in);
-	printf("Input: %f\n", in);
-	printf("Input: %f\n", __half2float(cpuInput));*/
-
+	
 	const uint32_t INPUTS = 3;
 	const uint32_t OUTPUTS = 2;
 
