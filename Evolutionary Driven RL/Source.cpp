@@ -1,48 +1,46 @@
-#include "Header.h"
+#include <cublas_v2.h>
+#include <curand.h>
+#include <iostream>
+#include <cuda_runtime.h>
 
 int main()
 {
-	auto start = std::chrono::high_resolution_clock::now();
-	uint32_t a = 0, b = 1, c = 0;
-	for (uint32_t i = 1000000; i--;)
+	float* cpusrc = new float[1000000];
+	float* cpudst = new float[1000000];
+	float* gpusrc;
+	cudaMalloc(&gpusrc, 1000000 * sizeof(float));
+	float* gpudst;
+	cudaMalloc(&gpudst, 1000000 * sizeof(float));
+	
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord(start);
+	
+	for (uint32_t i = 1000; i--;)
 	{
-		c = a + b;
-		a = b;
-		b = c;
+		cudaMemcpy(gpudst, cpusrc, 1000000 * sizeof(float), cudaMemcpyHostToDevice);
 	}
-	auto stop = std::chrono::high_resolution_clock::now();
-	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+	
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	float milliseconds = 0;
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("Time taken: %f ms\n", milliseconds);
 
 	
-	float* input = new float[10];
-	float* output = new float[10];
-
-
-	start = std::chrono::high_resolution_clock::now();
-	for (uint32_t i = 1000000; i--;)
-	{
-		cpuGenerateUniform(input, 10, -1, 1);
-		cpuRelu(input, output, 10);
-	}
-	stop = std::chrono::high_resolution_clock::now();
-	duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-	printf("Time taken by function: %llu microseconds\n", duration.count());
-
-
-	start = std::chrono::high_resolution_clock::now();
-	for (uint32_t i = 1000000; i--;)
-	{
-		cpuGenerateUniform(input, 10, -1, 1);
-		cpuRelu2(input, output, 10);
-	}
-	stop = std::chrono::high_resolution_clock::now();
-	duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-	printf("Time taken by function: %llu microseconds\n", duration.count());
-
+	cudaEventRecord(start);
 	
+	for (uint32_t i = 1000; i--;)
+	{
+		memcpy(cpudst, cpusrc, 1000000 * sizeof(float));
+	}
+	
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	milliseconds = 0;
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("Time taken: %f ms\n", milliseconds);
 
-	cpuGenerateUniform(input, 10, -2, 2);
-	cpuRelu(input, output, 10);
-	PrintMatrix(input, 1, 10, "Input");
-	PrintMatrix(output, 1, 10, "Relu");
+	return 0;
 }

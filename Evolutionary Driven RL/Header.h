@@ -52,12 +52,6 @@ void cpuRelu(float* input, float* output, uint32_t size)
 		output[counter] = (*(uint32_t*)(input + counter) >> 31) * input[counter];
 }
 
-void cpuRelu2(float* input, float* output, uint32_t size)
-{
-	for (uint32_t counter = size; counter--;)
-		output[counter] = (input[counter] < 0) * input[counter];
-}
-
 void cpuSoftmax(float* input, float* output, uint32_t size)
 {
 	float sum = 0;
