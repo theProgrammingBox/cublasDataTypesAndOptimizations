@@ -16,8 +16,8 @@ int main()
 	curandCreateGenerator(&curandGenerator, CURAND_RNG_PSEUDO_DEFAULT);
 	curandSetPseudoRandomGeneratorSeed(curandGenerator, std::chrono::high_resolution_clock::now().time_since_epoch().count());
 	
-	const uint32_t INPUTS = 3;
-	const uint32_t OUTPUTS = 2;
+	const uint32_t INPUTS = 2;
+	const uint32_t OUTPUTS = 10;
 
 	half* gpuInputMatrix;
 	half* gpuWeightMatrix;

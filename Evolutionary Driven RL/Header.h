@@ -46,15 +46,20 @@ void CurandGenerateUniformEx(curandGenerator_t generator, half* output, uint32_t
 __global__ void GpuRelu(half* input, half* output, uint32_t size)
 {
 	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
-	if (index < size)
+	if (index < size && *(uint16_t*)(input + index) >> 15)
+	{
+		output[index] = 0.0f;
+	}
+	/*if (index < size)
 	{
 		uint16_t a = *(uint16_t*)(input + index);
 		uint16_t b = (a >> 15) * a;
 		memcpy(output + index, &b, 2);
-	}
+	}*/
 }
 
 void Relu(half* input, half* output, uint32_t size)
 {
+	cudaMemcpy(output, input, size << 1, cudaMemcpyDeviceToDevice);
 	GpuRelu <<<std::ceil(0.0009765625f * size), 1024>>> (input, output, size);
 }
