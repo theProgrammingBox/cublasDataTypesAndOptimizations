@@ -70,7 +70,7 @@ int main()
 	float val2;
 	for (uint32_t itr = 10; itr--;)
 	{
-		float randomNum = (float)rand() / (float)RAND_MAX * 2 - 1;
+		float randomNum = (float)rand() / (float)RAND_MAX * 10;
 		printf("%f\t", randomNum);
 		
 		__nv_fp8_storage_t idk = __nv_cvt_float_to_fp8(randomNum, __NV_SATFINITE, __NV_E4M3);
