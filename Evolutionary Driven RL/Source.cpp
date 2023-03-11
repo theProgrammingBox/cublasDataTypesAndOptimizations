@@ -19,26 +19,26 @@ int main()
 	const uint32_t INPUTS = 2;
 	const uint32_t OUTPUTS = 10;
 
-	half* gpuInputMatrix;
-	half* gpuWeightMatrix;
-	half* gpuProductMatrix;
-	half* gpuReluMatrix;
+	__half* gpuInputMatrix;
+	__half* gpuWeightMatrix;
+	__half* gpuProductMatrix;
+	__half* gpuReluMatrix;
 
 	cudaMalloc(&gpuInputMatrix, INPUTS << 1);
 	cudaMalloc(&gpuWeightMatrix, INPUTS * OUTPUTS << 1);
 	cudaMalloc(&gpuProductMatrix, OUTPUTS << 1);
 	cudaMalloc(&gpuReluMatrix, OUTPUTS << 1);
 
-	half* cpuInputMatrix = (half*)malloc(INPUTS << 1);
-	half* cpuWeightMatrix = (half*)malloc(INPUTS * OUTPUTS << 1);
-	half* cpuOutputMatrix = (half*)malloc(OUTPUTS << 1);
-	half* cpuReluMatrix = (half*)malloc(OUTPUTS << 1);
+	__half* cpuInputMatrix = (__half*)malloc(INPUTS << 1);
+	__half* cpuWeightMatrix = (__half*)malloc(INPUTS * OUTPUTS << 1);
+	__half* cpuOutputMatrix = (__half*)malloc(OUTPUTS << 1);
+	__half* cpuReluMatrix = (__half*)malloc(OUTPUTS << 1);
 
 	CurandGenerateUniformEx(curandGenerator, gpuInputMatrix, INPUTS);
 	CurandGenerateUniformEx(curandGenerator, gpuWeightMatrix, INPUTS * OUTPUTS);
 
-	const half alpha = 1.0f;
-	const half beta = 0.0f;
+	const __half alpha = 1.0f;
+	const __half beta = 0.0f;
 
 	cublasGemmStridedBatchedEx
 	(
@@ -59,75 +59,10 @@ int main()
 	cudaMemcpy(cpuOutputMatrix, gpuProductMatrix, OUTPUTS << 1, cudaMemcpyDeviceToHost);
 	cudaMemcpy(cpuReluMatrix, gpuReluMatrix, OUTPUTS << 1, cudaMemcpyDeviceToHost);
 
-	PrintMatrixHalf(cpuInputMatrix, 1, INPUTS, "Input");
-	PrintMatrixHalf(cpuWeightMatrix, INPUTS, OUTPUTS, "Weight");
-	PrintMatrixHalf(cpuOutputMatrix, 1, OUTPUTS, "Output");
-	PrintMatrixHalf(cpuReluMatrix, 1, OUTPUTS, "Relu");
-
-	/*float averageErr1 = 0;
-	float averageErr2 = 0;
-	float val1;
-	float val2;
-	for (uint32_t itr = 10; itr--;)
-	{
-		float randomNum = (float)rand() / (float)RAND_MAX * 10;
-		printf("%f\t", randomNum);
-		
-		__nv_fp8_storage_t idk = __nv_cvt_float_to_fp8(randomNum, __NV_SATFINITE, __NV_E4M3);
-		__half_raw idk2 = __nv_cvt_fp8_to_halfraw(idk, __NV_E4M3);
-		val1 = __half2float(idk2);
-		averageErr1 += abs(randomNum - val1);
-		printf("%f\t", val1);
-
-		__nv_fp8_storage_t idk3 = __nv_cvt_float_to_fp8(randomNum, __NV_SATFINITE, __NV_E5M2);
-		__half_raw idk4 = __nv_cvt_fp8_to_halfraw(idk3, __NV_E5M2);
-		val2 = __half2float(idk4);
-		averageErr2 += abs(randomNum - val2);
-		printf("%f\n", val2);
-	}
-	printf("Average error for E4M3: %f\n", averageErr1 / 10);
-	printf("Average error for E5M2: %f\n", averageErr2 / 10);*/
-
-	__half* gpuHalfInput1;
-	__half* gpuHalfInput2;
-	__half* gpuHalfOutput;
-
-	cudaMalloc(&gpuHalfInput1, 1 << 1);
-	cudaMalloc(&gpuHalfInput2, 1 << 1);
-	cudaMalloc(&gpuHalfOutput, 1 << 1);
-	
-	__half* cpuHalfInput1;
-	__half* cpuHalfInput2;
-	__half* cpuHalfOutput;
-
-	cpuHalfInput1 = (__half*)malloc(1 << 1);
-	cpuHalfInput2 = (__half*)malloc(1 << 1);
-	cpuHalfOutput = (__half*)malloc(1 << 1);
-	
-	cpuHalfInput1[0] = __float2half(1.0f);
-	cpuHalfInput2[0] = __float2half(2.0f);
-
-	cudaMemcpy(gpuHalfInput1, cpuHalfInput1, 1 << 1, cudaMemcpyHostToDevice);
-	cudaMemcpy(gpuHalfInput2, cpuHalfInput2, 1 << 1, cudaMemcpyHostToDevice);
-	
-	Add(gpuHalfInput1, gpuHalfInput2, gpuHalfOutput);
-	
-	cudaMemcpy(cpuHalfInput1, gpuHalfInput1, 1 << 1, cudaMemcpyDeviceToHost);
-	cudaMemcpy(cpuHalfInput2, gpuHalfInput2, 1 << 1, cudaMemcpyDeviceToHost);
-	cudaMemcpy(cpuHalfOutput, gpuHalfOutput, 1 << 1, cudaMemcpyDeviceToHost);
-	
-	printf("%f\n", __half2float(cpuHalfInput1[0]));
-	printf("%f\n", __half2float(cpuHalfInput2[0]));
-	printf("%f\n\n", __half2float(cpuHalfOutput[0]));
-
-	const __half alphaHalf = __float2half(1.0f);
-	haxpy <<<1, 1>>> (1, alphaHalf, gpuHalfInput1, gpuHalfInput2);
-
-	cudaMemcpy(cpuHalfInput1, gpuHalfInput1, 1 << 1, cudaMemcpyDeviceToHost);
-	cudaMemcpy(cpuHalfInput2, gpuHalfInput2, 1 << 1, cudaMemcpyDeviceToHost);
-	
-	printf("%f\n", __half2float(cpuHalfInput1[0]));
-	printf("%f\n", __half2float(cpuHalfInput2[0]));
+	PrintMatrixf16(cpuInputMatrix, 1, INPUTS, "Input");
+	PrintMatrixf16(cpuWeightMatrix, INPUTS, OUTPUTS, "Weight");
+	PrintMatrixf16(cpuOutputMatrix, 1, OUTPUTS, "Output");
+	PrintMatrixf16(cpuReluMatrix, 1, OUTPUTS, "Relu");
 
 	cublasDestroy(cublasHandle);
 	curandDestroyGenerator(curandGenerator);
@@ -139,8 +74,6 @@ int main()
 	free(cpuInputMatrix);
 	free(cpuWeightMatrix);
 	free(cpuOutputMatrix);
-
-	// start gpu timer
 
 	return 0;
 }
