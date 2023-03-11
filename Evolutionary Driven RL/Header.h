@@ -50,16 +50,25 @@ __global__ void GpuRelu(half* input, half* output, uint32_t size)
 	{
 		output[index] = 0.0f;
 	}
-	/*if (index < size)
-	{
-		uint16_t a = *(uint16_t*)(input + index);
-		uint16_t b = (a >> 15) * a;
-		memcpy(output + index, &b, 2);
-	}*/
 }
 
 void Relu(half* input, half* output, uint32_t size)
 {
 	cudaMemcpy(output, input, size << 1, cudaMemcpyDeviceToDevice);
-	GpuRelu <<<std::ceil(0.0009765625f * size), 1024>>> (input, output, size);
+	GpuRelu << <std::ceil(0.0009765625f * size), 1024 >> > (input, output, size);
+}
+
+__global__ void GpuRelu2(half* input, half* output, uint32_t size)
+{
+	if (index < size)
+	{
+		uint16_t a = *(uint16_t*)(input + index);
+		uint16_t b = (a >> 15) * a;
+		memcpy(output + index, &b, 2);
+	}
+}
+
+void Relu2(half* input, half* output, uint32_t size)
+{
+	GpuRelu2 <<<std::ceil(0.0009765625f * size), 1024>>> (input, output, size);
 }

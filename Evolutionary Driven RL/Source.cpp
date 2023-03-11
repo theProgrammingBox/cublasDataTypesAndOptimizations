@@ -75,5 +75,7 @@ int main()
 	free(cpuWeightMatrix);
 	free(cpuOutputMatrix);
 
+	// start gpu timer
+
 	return 0;
 }
