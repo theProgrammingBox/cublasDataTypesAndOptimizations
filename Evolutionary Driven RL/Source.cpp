@@ -14,7 +14,7 @@ int main()
 
 	curandGenerator_t curandGenerator;
 	curandCreateGenerator(&curandGenerator, CURAND_RNG_PSEUDO_DEFAULT);
-	curandSetPseudoRandomGeneratorSeed(curandGenerator, 1234ULL);
+	curandSetPseudoRandomGeneratorSeed(curandGenerator, std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
 	/*float in = 1.0f / 3.0f;
 	half cpuInput = __float2half(in);

@@ -4,6 +4,7 @@
 #include <curand.h>
 #include <cuda_runtime.h>
 #include <iostream>
+#include <chrono>
 
 void PrintMatrixHalf(half* arr, uint32_t rows, uint32_t cols, const char* label)
 {
@@ -33,13 +34,11 @@ __global__ void curandNormalize(half* output, uint32_t size, float min, float ra
 {
 	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
 	if (index < size)
-	{
 		output[index] = __float2half(*(uint16_t*)(output + index) * range + min);
-	}
 }
 
 void curandGenerateUniformEx(curandGenerator_t generator, half* output, uint32_t size, float min = -1.0f, float max = 1.0f)
 {
 	curandGenerate(generator, (uint32_t*)output, size << 1);
-	curandNormalize <<<0.0009765625f * size + 1, 1024>>> (output, size, min, (max - min) * 0.0000152590218967f);
+	curandNormalize <<<std::ceil(0.0009765625f * size), 1024>>> (output, size, min, (max - min) * 0.0000152590218967f);
 }
