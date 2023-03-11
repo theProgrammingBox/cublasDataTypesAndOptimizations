@@ -56,7 +56,7 @@ __global__ void GpuRelu(half* input, half* output, uint32_t size)
 void Relu(half* input, half* output, uint32_t size)
 {
 	cudaMemcpy(output, input, size << 1, cudaMemcpyDeviceToDevice);
-	GpuRelu << <std::ceil(0.0009765625f * size), 1024 >> > (input, output, size);
+	GpuRelu <<<std::ceil(0.0009765625f * size), 1024>>> (input, output, size);
 }
 
 /*
@@ -75,3 +75,38 @@ void Relu2(half* input, half* output, uint32_t size)
 	GpuRelu2 <<<std::ceil(0.0009765625f * size), 1024>>> (input, output, size);
 }
 */
+
+__global__ void GpuAdd(__half* input1, __half* input2, __half* output)
+{
+	output[0] = __hadd(input2[0], input1[0]);
+}
+
+void Add(__half* input1, __half* input2, __half* output)
+{
+	GpuAdd <<<1, 1>>> (input1, input2, output);
+}
+
+__global__
+void haxpy(int n, half a, const half* x, half* y)
+{
+	int start = threadIdx.x + blockDim.x * blockIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+#if __CUDA_ARCH__ >= 530
+	int n2 = n / 2;
+	half2* x2 = (half2*)x, * y2 = (half2*)y;
+
+	for (int i = start; i < n2; i += stride)
+		y2[i] = __hfma2(__halves2half2(a, a), x2[i], y2[i]);
+
+	// first thread handles singleton for odd arrays
+	if (start == 0 && (n % 2))
+		y[n - 1] = __hfma(a, x[n - 1], y[n - 1]);
+
+#else
+	for (int i = start; i < n; i += stride) {
+		y[i] = __float2half(__half2float(a) * __half2float(x[i])
+			+ __half2float(y[i]));
+	}
+#endif
+}

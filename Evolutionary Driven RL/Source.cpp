@@ -64,7 +64,7 @@ int main()
 	PrintMatrixHalf(cpuOutputMatrix, 1, OUTPUTS, "Output");
 	PrintMatrixHalf(cpuReluMatrix, 1, OUTPUTS, "Relu");
 
-	float averageErr1 = 0;
+	/*float averageErr1 = 0;
 	float averageErr2 = 0;
 	float val1;
 	float val2;
@@ -86,7 +86,48 @@ int main()
 		printf("%f\n", val2);
 	}
 	printf("Average error for E4M3: %f\n", averageErr1 / 10);
-	printf("Average error for E5M2: %f\n", averageErr2 / 10);
+	printf("Average error for E5M2: %f\n", averageErr2 / 10);*/
+
+	__half* gpuHalfInput1;
+	__half* gpuHalfInput2;
+	__half* gpuHalfOutput;
+
+	cudaMalloc(&gpuHalfInput1, 1 << 1);
+	cudaMalloc(&gpuHalfInput2, 1 << 1);
+	cudaMalloc(&gpuHalfOutput, 1 << 1);
+	
+	__half* cpuHalfInput1;
+	__half* cpuHalfInput2;
+	__half* cpuHalfOutput;
+
+	cpuHalfInput1 = (__half*)malloc(1 << 1);
+	cpuHalfInput2 = (__half*)malloc(1 << 1);
+	cpuHalfOutput = (__half*)malloc(1 << 1);
+	
+	cpuHalfInput1[0] = __float2half(1.0f);
+	cpuHalfInput2[0] = __float2half(2.0f);
+
+	cudaMemcpy(gpuHalfInput1, cpuHalfInput1, 1 << 1, cudaMemcpyHostToDevice);
+	cudaMemcpy(gpuHalfInput2, cpuHalfInput2, 1 << 1, cudaMemcpyHostToDevice);
+	
+	Add(gpuHalfInput1, gpuHalfInput2, gpuHalfOutput);
+	
+	cudaMemcpy(cpuHalfInput1, gpuHalfInput1, 1 << 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuHalfInput2, gpuHalfInput2, 1 << 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuHalfOutput, gpuHalfOutput, 1 << 1, cudaMemcpyDeviceToHost);
+	
+	printf("%f\n", __half2float(cpuHalfInput1[0]));
+	printf("%f\n", __half2float(cpuHalfInput2[0]));
+	printf("%f\n\n", __half2float(cpuHalfOutput[0]));
+
+	const __half alphaHalf = __float2half(1.0f);
+	haxpy <<<1, 1>>> (1, alphaHalf, gpuHalfInput1, gpuHalfInput2);
+
+	cudaMemcpy(cpuHalfInput1, gpuHalfInput1, 1 << 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuHalfInput2, gpuHalfInput2, 1 << 1, cudaMemcpyDeviceToHost);
+	
+	printf("%f\n", __half2float(cpuHalfInput1[0]));
+	printf("%f\n", __half2float(cpuHalfInput2[0]));
 
 	cublasDestroy(cublasHandle);
 	curandDestroyGenerator(curandGenerator);
