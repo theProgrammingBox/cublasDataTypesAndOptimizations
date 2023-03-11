@@ -38,35 +38,40 @@ int main()
 	
 	curandGenerateUniformEx(curandGenerator, gpuInputMatrix, INPUTS);
 	curandGenerateUniformEx(curandGenerator, gpuWeightMatrix, INPUTS * OUTPUTS);
-	
-	cudaMemcpy(cpuInputMatrix, gpuInputMatrix, INPUTS << 1, cudaMemcpyDeviceToHost);
-	cudaMemcpy(cpuWeightMatrix, gpuWeightMatrix, INPUTS * OUTPUTS << 1, cudaMemcpyDeviceToHost);
-	PrintMatrixHalf(cpuInputMatrix, INPUTS, 1, "Input");
-	PrintMatrixHalf(cpuWeightMatrix, INPUTS, OUTPUTS, "Weight");
 
-	/*float alpha = 1.0f;
-	float beta = 0.0f;
-	cublasGemmStridedBatchedEx(
+	const half alpha = 1.0f;
+	const half beta = 0.0f;
+	
+	cublasGemmStridedBatchedEx
+	(
 		cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
 		OUTPUTS, 1, INPUTS,
 		&alpha,
-		gpuWeightMatrix, CUDA_R_32F, OUTPUTS, 0,
-		gpuInputMatrix, CUDA_R_32F, INPUTS, 0,
+		gpuWeightMatrix, CUDA_R_16F, OUTPUTS, 0,
+		gpuInputMatrix, CUDA_R_16F, INPUTS, 0,
 		&beta,
-		gpuOutputMatrix, CUDA_R_32F, OUTPUTS, 0,
-		1, CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP
+		gpuOutputMatrix, CUDA_R_16F, OUTPUTS, 0,
+		1, CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP
 	);
+
+	cudaMemcpy(cpuInputMatrix, gpuInputMatrix, INPUTS << 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuWeightMatrix, gpuWeightMatrix, INPUTS * OUTPUTS << 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuOutputMatrix, gpuOutputMatrix, OUTPUTS << 1, cudaMemcpyDeviceToHost);
 	
-	cudaMemcpy(cpuInputMatrix, gpuInputMatrix, INPUTS << 2, cudaMemcpyDeviceToHost);
-	cudaMemcpy(cpuWeightMatrix, gpuWeightMatrix, INPUTS * OUTPUTS << 2, cudaMemcpyDeviceToHost);
-	cudaMemcpy(cpuOutputMatrix, gpuOutputMatrix, OUTPUTS << 2, cudaMemcpyDeviceToHost);
-	
-	PrintMatrix(cpuInputMatrix, INPUTS, 1, "Input");
-	PrintMatrix(cpuWeightMatrix, INPUTS, OUTPUTS, "Weight");
-	PrintMatrix(cpuOutputMatrix, OUTPUTS, 1, "Output");*/
+	PrintMatrixHalf(cpuInputMatrix, 1, INPUTS, "Input");
+	PrintMatrixHalf(cpuWeightMatrix, INPUTS, OUTPUTS, "Weight");
+	PrintMatrixHalf(cpuOutputMatrix, OUTPUTS, 1, "Output");
 	
 	curandDestroyGenerator(curandGenerator);
 	cublasDestroy(cublasHandle);
+	
+	cudaFree(gpuInputMatrix);
+	cudaFree(gpuWeightMatrix);
+	cudaFree(gpuOutputMatrix);
+	
+	free(cpuInputMatrix);
+	free(cpuWeightMatrix);
+	free(cpuOutputMatrix);
 
 	return 0;
 }

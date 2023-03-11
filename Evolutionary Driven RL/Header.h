@@ -35,6 +35,8 @@ __global__ void curandNormalize(half* output, uint32_t size, float min, float ra
 	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
 	if (index < size)
 		output[index] = __float2half(*(uint16_t*)(output + index) * range + min);
+	/*bool valid = index < size;
+	output[index] = ~valid * output[index] + valid * __float2half(*(uint16_t*)(output + index) * range + min);*/
 }
 
 void curandGenerateUniformEx(curandGenerator_t generator, half* output, uint32_t size, float min = -1.0f, float max = 1.0f)
