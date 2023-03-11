@@ -12,6 +12,15 @@ Time taken for gpu to gpu: 37.351521 ms
 
 int main()
 {
+	cudaSetDevice(0);
+	cublasHandle_t handle;
+	cublasCreate(&handle);
+	cudaDeviceProp prop;
+	cudaGetDeviceProperties(&prop, 0);
+	size_t total_mem = prop.totalGlobalMem;
+	printf("Total memory: %zu\n", total_mem);
+	
+	
 	float* cpusrc = new float[1000000];
 	float* cpudst = new float[1000000];
 	float* gpusrc;
@@ -79,6 +88,28 @@ int main()
 	milliseconds = 0;
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("Time taken for gpu to gpu: %f ms\n", milliseconds);
+
+	
+	// now using cublasSetMatrix
+	cudaEventRecord(start);
+
+	for (uint32_t i = 1000; i--;)
+	{
+		cublasSetMatrix(1000, 1000, sizeof(float), cpusrc, 1000, gpusrc, 1000);
+	}
+
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	milliseconds = 0;
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("Time taken for cpu to gpu: %f ms\n", milliseconds);
+
+	
+	cublasDestroy(handle);
+	cudaFree(gpusrc);
+	cudaFree(gpudst);
+	delete[] cpusrc;
+	delete[] cpudst;
 
 	return 0;
 }
