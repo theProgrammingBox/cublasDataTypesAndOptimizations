@@ -30,17 +30,31 @@ void PrintMatrixFloat(float* arr, uint32_t rows, uint32_t cols, const char* labe
 	printf("\n");
 }
 
-__global__ void curandNormalize(half* output, uint32_t size, float min, float range)
+__global__ void CurandNormalize(half* output, uint32_t size, float min, float range)
 {
 	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
 	if (index < size)
 		output[index] = __float2half(*(uint16_t*)(output + index) * range + min);
-	/*bool valid = index < size;
-	output[index] = ~valid * output[index] + valid * __float2half(*(uint16_t*)(output + index) * range + min);*/
 }
 
-void curandGenerateUniformEx(curandGenerator_t generator, half* output, uint32_t size, float min = -1.0f, float max = 1.0f)
+void CurandGenerateUniformEx(curandGenerator_t generator, half* output, uint32_t size, float min = -1.0f, float max = 1.0f)
 {
 	curandGenerate(generator, (uint32_t*)output, size << 1);
-	curandNormalize <<<std::ceil(0.0009765625f * size), 1024>>> (output, size, min, (max - min) * 0.0000152590218967f);
+	CurandNormalize <<<std::ceil(0.0009765625f * size), 1024>>> (output, size, min, (max - min) * 0.0000152590218967f);
+}
+
+__global__ void GpuRelu(half* input, half* output, uint32_t size)
+{
+	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+	if (index < size)
+	{
+		uint16_t a = *(uint16_t*)(input + index);
+		uint16_t b = (a >> 15) * a;
+		memcpy(output + index, &b, 2);
+	}
+}
+
+void Relu(half* input, half* output, uint32_t size)
+{
+	GpuRelu <<<std::ceil(0.0009765625f * size), 1024>>> (input, output, size);
 }
