@@ -31,13 +31,13 @@ void PrintMatrixf16(__half* arr, uint32_t rows, uint32_t cols, const char* label
 	printf("\n");
 }
 
-void PrintMatrixf8(__nv_fp8_storage_t* arr, uint32_t rows, uint32_t cols, const char* label)
+void PrintMatrixf8(__nv_fp8_e4m3* arr, uint32_t rows, uint32_t cols, const char* label)
 {
 	printf("%s:\n", label);
 	for (uint32_t i = 0; i < rows; i++)
 	{
 		for (uint32_t j = 0; j < cols; j++)
-			printf("%8.3f ", __half2float(__nv_cvt_fp8_to_halfraw(arr[i * cols + j], __NV_E4M3)));
+			printf("%8.3f ", (float)arr[i * cols + j]);
 		printf("\n");
 	}
 	printf("\n");
@@ -52,8 +52,21 @@ __global__ void CurandNormalizef16(__half* output, uint32_t size, float min, flo
 
 void CurandGenerateUniformf16(curandGenerator_t generator, __half* output, uint32_t size, float min = -1.0f, float max = 1.0f)
 {
-	curandGenerate(generator, (uint32_t*)output, size << 1);
+	curandGenerate(generator, (uint32_t*)output, (size >> 1) + (size & 1));
 	CurandNormalizef16 <<<std::ceil(0.0009765625f * size), 1024>>> (output, size, min, (max - min) * 0.0000152590218967f);
+}
+
+__global__ void CurandNormalizef8(__nv_fp8_e4m3* output, uint32_t size, float min, float range)
+{
+	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+	if (index < size)
+		output[index] = __nv_fp8_e4m3(*(uint8_t*)(output + index) * range + min);
+}
+
+void CurandGenerateUniformf8(curandGenerator_t generator, __nv_fp8_e4m3* output, uint32_t size, float min = -1.0f, float max = 1.0f)
+{
+	curandGenerate(generator, (uint32_t*)output, (size >> 2) + bool(size & 3));
+	CurandNormalizef8 <<<std::ceil(0.0009765625f * size), 1024>>> (output, size, min, (max - min) * 0.00392156862745f);
 }
 
 __global__ void GpuReluf16(__half* input, __half* output, uint32_t size)
