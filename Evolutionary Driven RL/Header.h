@@ -74,7 +74,7 @@ __global__ void GpuReluf16(__half* input, __half* output, uint32_t size)
 	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
 	if (index < size && *(uint16_t*)(input + index) >> 15)
 	{
-		output[index] = 0.0f;
+		output[index] = 0;
 	}
 }
 
@@ -82,4 +82,19 @@ void Reluf16(__half* input, __half* output, uint32_t size)
 {
 	cudaMemcpy(output, input, size << 1, cudaMemcpyDeviceToDevice);
 	GpuReluf16 << <std::ceil(0.0009765625f * size), 1024 >> > (input, output, size);
+}
+
+__global__ void GpuReluf8(__nv_fp8_e4m3* input, __nv_fp8_e4m3* output, uint32_t size)
+{
+	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+	if (index < size && *(uint8_t*)(input + index) >> 7)
+	{
+		output[index] = (__nv_fp8_e4m3)0;
+	}
+}
+
+void Reluf8(__nv_fp8_e4m3* input, __nv_fp8_e4m3* output, uint32_t size)
+{
+	cudaMemcpy(output, input, size, cudaMemcpyDeviceToDevice);
+	GpuReluf8 << <std::ceil(0.0009765625f * size), 1024 >> > (input, output, size);
 }
