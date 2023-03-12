@@ -53,7 +53,7 @@ __global__ void CurandNormalizef16(__half* output, uint32_t size, float min, flo
 void CurandGenerateUniformf16(curandGenerator_t generator, __half* output, uint32_t size, float min = -1.0f, float max = 1.0f)
 {
 	curandGenerate(generator, (uint32_t*)output, (size >> 1) + (size & 1));
-	CurandNormalizef16 <<<std::ceil(0.0009765625f * size), 1024>>> (output, size, min, (max - min) * 0.0000152590218967f);
+	CurandNormalizef16 << <std::ceil(0.0009765625f * size), 1024 >> > (output, size, min, (max - min) * 0.0000152590218967f);
 }
 
 __global__ void CurandNormalizef8(__nv_fp8_e4m3* output, uint32_t size, float min, float range)
@@ -66,7 +66,7 @@ __global__ void CurandNormalizef8(__nv_fp8_e4m3* output, uint32_t size, float mi
 void CurandGenerateUniformf8(curandGenerator_t generator, __nv_fp8_e4m3* output, uint32_t size, float min = -1.0f, float max = 1.0f)
 {
 	curandGenerate(generator, (uint32_t*)output, (size >> 2) + bool(size & 3));
-	CurandNormalizef8 <<<std::ceil(0.0009765625f * size), 1024>>> (output, size, min, (max - min) * 0.00392156862745f);
+	CurandNormalizef8 << <std::ceil(0.0009765625f * size), 1024 >> > (output, size, min, (max - min) * 0.00392156862745f);
 }
 
 __global__ void GpuReluf16(__half* input, __half* output, uint32_t size)
@@ -81,5 +81,5 @@ __global__ void GpuReluf16(__half* input, __half* output, uint32_t size)
 void Reluf16(__half* input, __half* output, uint32_t size)
 {
 	cudaMemcpy(output, input, size << 1, cudaMemcpyDeviceToDevice);
-	GpuReluf16 <<<std::ceil(0.0009765625f * size), 1024>>> (input, output, size);
+	GpuReluf16 << <std::ceil(0.0009765625f * size), 1024 >> > (input, output, size);
 }

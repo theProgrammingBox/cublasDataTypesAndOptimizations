@@ -69,23 +69,23 @@ void F8Default(cublasHandle_t cublasHandle, curandGenerator_t curandGenerator, c
 	__nv_fp8_e4m3* gpuWeightMatrix;
 	__nv_fp8_e4m3* gpuProductMatrix;
 	__nv_fp8_e4m3* gpuReluMatrix;
-	
+
 	cudaMalloc(&gpuInputMatrix, INPUTS);
 	cudaMalloc(&gpuWeightMatrix, INPUTS * OUTPUTS);
 	cudaMalloc(&gpuProductMatrix, OUTPUTS);
 	cudaMalloc(&gpuReluMatrix, OUTPUTS);
-	
+
 	__nv_fp8_e4m3* cpuInputMatrix = (__nv_fp8_e4m3*)malloc(INPUTS);
 	__nv_fp8_e4m3* cpuWeightMatrix = (__nv_fp8_e4m3*)malloc(INPUTS * OUTPUTS);
 	__nv_fp8_e4m3* cpuOutputMatrix = (__nv_fp8_e4m3*)malloc(OUTPUTS);
 	__nv_fp8_e4m3* cpuReluMatrix = (__nv_fp8_e4m3*)malloc(OUTPUTS);
-	
+
 	CurandGenerateUniformf8(curandGenerator, gpuInputMatrix, INPUTS);
 	CurandGenerateUniformf8(curandGenerator, gpuWeightMatrix, INPUTS * OUTPUTS);
 
 	cudaMemcpy(cpuInputMatrix, gpuInputMatrix, INPUTS, cudaMemcpyDeviceToHost);
 	cudaMemcpy(cpuWeightMatrix, gpuWeightMatrix, INPUTS * OUTPUTS, cudaMemcpyDeviceToHost);
-	
+
 	PrintMatrixf8(cpuInputMatrix, 1, INPUTS, "Input");
 	PrintMatrixf8(cpuWeightMatrix, INPUTS, OUTPUTS, "Weight");
 }
@@ -99,14 +99,14 @@ int main()
 	curandCreateGenerator(&curandGenerator, CURAND_RNG_PSEUDO_DEFAULT);
 	curandSetPseudoRandomGeneratorSeed(curandGenerator, std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
-	const uint32_t INPUTS = 3;
-	const uint32_t OUTPUTS = 7;
-	
+	const uint32_t INPUTS = 18;
+	const uint32_t OUTPUTS = 17;
+
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 	float milliseconds;
-	
+
 	cudaEventRecord(start);
 	for (uint32_t itr = 1; itr--;)
 		F16Default(cublasHandle, curandGenerator, INPUTS, OUTPUTS);
