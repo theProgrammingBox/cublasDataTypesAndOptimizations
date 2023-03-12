@@ -40,14 +40,13 @@ int main()
 	__nv_fp8_e4m3* cpuReluMatrixf8 = (__nv_fp8_e4m3*)malloc(OUTPUTS);
 
 	cudaEventRecord(start);
-	for (uint32_t itr = 100000; itr--;)
+	for (uint32_t itr = 1; itr--;)
 	{
-
 		CurandGenerateUniformf8(curandGenerator, gpuInputMatrixf8, INPUTS);
 		CurandGenerateUniformf8(curandGenerator, gpuWeightMatrixf8, INPUTS * OUTPUTS);
 
-		const __nv_fp8_e4m3 alpha = (__nv_fp8_e4m3)1;
-		const __nv_fp8_e4m3 beta = (__nv_fp8_e4m3)0;
+		const __nv_fp8_e4m3 alpha = __nv_fp8_e4m3(1);
+		const __nv_fp8_e4m3 beta = __nv_fp8_e4m3(0);
 
 		/*const float alpha = 1;
 		const float beta = 0;*/
@@ -66,7 +65,7 @@ int main()
 
 		Reluf8(gpuProductMatrixf8, gpuReluMatrixf8, OUTPUTS);
 
-		/*cudaMemcpy(cpuInputMatrixf8, gpuInputMatrixf8, INPUTS, cudaMemcpyDeviceToHost);
+		cudaMemcpy(cpuInputMatrixf8, gpuInputMatrixf8, INPUTS, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuWeightMatrixf8, gpuWeightMatrixf8, INPUTS * OUTPUTS, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuOutputMatrixf8, gpuProductMatrixf8, OUTPUTS, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuReluMatrixf8, gpuReluMatrixf8, OUTPUTS, cudaMemcpyDeviceToHost);
@@ -74,7 +73,7 @@ int main()
 		PrintMatrixf8(cpuInputMatrixf8, 1, INPUTS, "Input");
 		PrintMatrixf8(cpuWeightMatrixf8, INPUTS, OUTPUTS, "Weight");
 		PrintMatrixf8(cpuOutputMatrixf8, 1, OUTPUTS, "Output");
-		PrintMatrixf8(cpuReluMatrixf8, 1, OUTPUTS, "Relu");*/
+		PrintMatrixf8(cpuReluMatrixf8, 1, OUTPUTS, "Relu");/**/
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -107,9 +106,8 @@ int main()
 	__half* cpuReluMatrixf16 = (__half*)malloc(OUTPUTS << 1);
 
 	cudaEventRecord(start);
-	for (uint32_t itr = 100000; itr--;)
+	for (uint32_t itr = 1; itr--;)
 	{
-
 		CurandGenerateUniformf16(curandGenerator, gpuInputMatrixf16, INPUTS);
 		CurandGenerateUniformf16(curandGenerator, gpuWeightMatrixf16, INPUTS * OUTPUTS);
 
@@ -133,7 +131,7 @@ int main()
 
 		Reluf16(gpuProductMatrixf16, gpuReluMatrixf16, OUTPUTS);
 
-		/*cudaMemcpy(cpuInputMatrixf16, gpuInputMatrixf16, INPUTS << 1, cudaMemcpyDeviceToHost);
+		cudaMemcpy(cpuInputMatrixf16, gpuInputMatrixf16, INPUTS << 1, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuWeightMatrixf16, gpuWeightMatrixf16, INPUTS * OUTPUTS << 1, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuOutputMatrixf16, gpuProductMatrixf16, OUTPUTS << 1, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuReluMatrixf16, gpuReluMatrixf16, OUTPUTS << 1, cudaMemcpyDeviceToHost);
@@ -141,7 +139,7 @@ int main()
 		PrintMatrixf16(cpuInputMatrixf16, 1, INPUTS, "Input");
 		PrintMatrixf16(cpuWeightMatrixf16, INPUTS, OUTPUTS, "Weight");
 		PrintMatrixf16(cpuOutputMatrixf16, 1, OUTPUTS, "Output");
-		PrintMatrixf16(cpuReluMatrixf16, 1, OUTPUTS, "Relu");*/
+		PrintMatrixf16(cpuReluMatrixf16, 1, OUTPUTS, "Relu");/**/
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -174,7 +172,7 @@ int main()
 	float* cpuReluMatrixf32 = (float*)malloc(OUTPUTS << 2);
 
 	cudaEventRecord(start);
-	for (uint32_t itr = 100000; itr--;)
+	for (uint32_t itr = 1; itr--;)
 	{
 		CurandGenerateUniformf32(curandGenerator, gpuInputMatrixf32, INPUTS);
 		CurandGenerateUniformf32(curandGenerator, gpuWeightMatrixf32, INPUTS * OUTPUTS);
@@ -196,7 +194,7 @@ int main()
 
 		Reluf32(gpuProductMatrixf32, gpuReluMatrixf32, OUTPUTS);
 
-		/*cudaMemcpy(cpuInputMatrixf32, gpuInputMatrixf32, INPUTS << 2, cudaMemcpyDeviceToHost);
+		cudaMemcpy(cpuInputMatrixf32, gpuInputMatrixf32, INPUTS << 2, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuWeightMatrixf32, gpuWeightMatrixf32, INPUTS * OUTPUTS << 2, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuOutputMatrixf32, gpuProductMatrixf32, OUTPUTS << 2, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuReluMatrixf32, gpuReluMatrixf32, OUTPUTS << 2, cudaMemcpyDeviceToHost);
@@ -204,7 +202,7 @@ int main()
 		PrintMatrixf32(cpuInputMatrixf32, 1, INPUTS, "Input");
 		PrintMatrixf32(cpuWeightMatrixf32, INPUTS, OUTPUTS, "Weight");
 		PrintMatrixf32(cpuOutputMatrixf32, 1, OUTPUTS, "Output");
-		PrintMatrixf32(cpuReluMatrixf32, 1, OUTPUTS, "Relu");*/
+		PrintMatrixf32(cpuReluMatrixf32, 1, OUTPUTS, "Relu");/**/
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

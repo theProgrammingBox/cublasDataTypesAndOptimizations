@@ -35,7 +35,7 @@ void CurandGenerateUniformf32(curandGenerator_t generator, float* output, uint32
 __global__ void GpuReluf32(float* input, float* output, uint32_t size)
 {
 	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
-	if (index < size && *(uint16_t*)(input + index) >> 31)
+	if (index < size && *(uint32_t*)(input + index) >> 31)
 	{
 		output[index] = 0;
 	}
