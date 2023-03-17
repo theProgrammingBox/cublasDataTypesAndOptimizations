@@ -8,22 +8,25 @@ Time taken for gpu to gpu: 37.351521 ms
 */
 
 /*
-Time taken for F8Default: 2518.237305 ms
-Time taken for F16Default: 2384.261719 ms
-Time taken for F32Default: 2252.892822 ms
-(idk why but the performance wasn't this bad before)
+Time taken for F32Default: 0.352416 ms
+Total error: 0.000018
+
+Time taken for F16Default: 0.169664 ms
+Total error: 0.025584
+
+Time taken for F8Default: 0.009184 ms
+Total error: 17.236345
 */
 
 /*
 IMPORTANT LESSONS
-1. f8 does not work currently (just the gemm part)
-2. f16 is often time just as slow as f32, can be worse
-3. f32 is good enough for now
-4. however, copying from gpu to cpu is slow so there may be merit in using f16 if you need to copy alot of data to cpu
-5. also, if gpu space is limited, f16 may be better, or even f8 if you can get it working
+1. f8 only works with the nvidia hopper architecture (i dont have that so i couldnt test it)
+2. f16 is about twise as fast as f32 (I did not really test batches and over intervals yet)
+3. if the f8 error is very large, it probably means that the gemm is not working properly due to non hopper architecture or a bug cuz i couldnt test it
+4. create seperate cublasHandle and curandGenerator for each gemm. This can be optimized down because I only tested if it works. i think we only need 1 curandGenerator 
 */
 
-void f32(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t itrations = 1, const bool debug = false)
+void f32(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t BATCHES = 1, const uint32_t itrations = 1, const bool debug = false)
 {
 	cublasHandle_t cublasHandle;
 	cublasCreate(&cublasHandle);
@@ -52,15 +55,15 @@ void f32(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t
 	float* cpuOutputMatrixf32 = (float*)malloc(OUTPUTS << 2);
 	float* cpuReluMatrixf32 = (float*)malloc(OUTPUTS << 2);
 
+	CurandGenerateUniformf32(curandGenerator, gpuInputMatrixf32, INPUTS);
+	CurandGenerateUniformf32(curandGenerator, gpuWeightMatrixf32, INPUTS * OUTPUTS);
+
 	const float alphaf32 = 1.0f;
 	const float betaf32 = 0.0f;
 
 	cudaEventRecord(start);
 	for (uint32_t itr = itrations; itr--;)
 	{
-		CurandGenerateUniformf32(curandGenerator, gpuInputMatrixf32, INPUTS);
-		CurandGenerateUniformf32(curandGenerator, gpuWeightMatrixf32, INPUTS * OUTPUTS);
-
 		cublasGemmStridedBatchedEx
 		(
 			cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
@@ -70,7 +73,7 @@ void f32(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t
 			gpuInputMatrixf32, CUDA_R_32F, INPUTS, 0,
 			&betaf32,
 			gpuProductMatrixf32, CUDA_R_32F, OUTPUTS, 0,
-			16, CUDA_R_32F, CUBLAS_GEMM_DEFAULT
+			BATCHES, CUDA_R_32F, CUBLAS_GEMM_DEFAULT
 		);
 
 		Reluf32(gpuProductMatrixf32, gpuReluMatrixf32, OUTPUTS);
@@ -93,6 +96,25 @@ void f32(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("Time taken for F32Default: %f ms\n", milliseconds);
 
+	// error checking
+	float* cpuCheckProductMatrixf32 = (float*)malloc(OUTPUTS << 2);
+	cudaMemcpy(cpuInputMatrixf32, gpuInputMatrixf32, INPUTS << 2, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuWeightMatrixf32, gpuWeightMatrixf32, INPUTS * OUTPUTS << 2, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuOutputMatrixf32, gpuProductMatrixf32, OUTPUTS << 2, cudaMemcpyDeviceToHost);
+
+	float totalErrorf32 = 0.0f;
+	for (uint32_t i = 0; i < OUTPUTS; i++)
+	{
+		cpuCheckProductMatrixf32[i] = 0.0f;
+		for (uint32_t j = 0; j < INPUTS; j++)
+		{
+			cpuCheckProductMatrixf32[i] += cpuInputMatrixf32[j] * cpuWeightMatrixf32[j * OUTPUTS + i];
+		}
+		totalErrorf32 += std::abs(cpuCheckProductMatrixf32[i] - cpuOutputMatrixf32[i]);
+	}
+	printf("Total error: %f\n\n", totalErrorf32 / OUTPUTS);
+	free(cpuCheckProductMatrixf32);
+
 	cudaFree(gpuInputMatrixf32);
 	cudaFree(gpuWeightMatrixf32);
 	cudaFree(gpuProductMatrixf32);
@@ -107,7 +129,7 @@ void f32(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t
 	curandDestroyGenerator(curandGenerator);
 }
 
-void f16(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t itrations = 1, const bool debug = false)
+void f16(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t BATCHES = 1, const uint32_t itrations = 1, const bool debug = false)
 {
 	cublasHandle_t cublasHandle;
 	cublasCreate(&cublasHandle);
@@ -136,15 +158,15 @@ void f16(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t
 	__half* cpuOutputMatrixf16 = (__half*)malloc(OUTPUTS << 1);
 	__half* cpuReluMatrixf16 = (__half*)malloc(OUTPUTS << 1);
 
+	CurandGenerateUniformf16(curandGenerator, gpuInputMatrixf16, INPUTS);
+	CurandGenerateUniformf16(curandGenerator, gpuWeightMatrixf16, INPUTS * OUTPUTS);
+
 	const __half alphaf16 = 1.0f;
 	const __half betaf16 = 0.0f;
 
 	cudaEventRecord(start);
 	for (uint32_t itr = itrations; itr--;)
 	{
-		CurandGenerateUniformf16(curandGenerator, gpuInputMatrixf16, INPUTS);
-		CurandGenerateUniformf16(curandGenerator, gpuWeightMatrixf16, INPUTS * OUTPUTS);
-
 		cublasGemmStridedBatchedEx
 		(
 			cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
@@ -154,7 +176,7 @@ void f16(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t
 			gpuInputMatrixf16, CUDA_R_16F, INPUTS, 0,
 			&betaf16,
 			gpuProductMatrixf16, CUDA_R_16F, OUTPUTS, 0,
-			16, CUDA_R_16F, CUBLAS_GEMM_DEFAULT
+			BATCHES, CUDA_R_16F, CUBLAS_GEMM_DEFAULT
 		);
 
 		Reluf16(gpuProductMatrixf16, gpuReluMatrixf16, OUTPUTS);
@@ -177,6 +199,25 @@ void f16(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("Time taken for F16Default: %f ms\n", milliseconds);
 
+	// error checking
+	float* cpuCheckProductMatrixf32 = (float*)malloc(OUTPUTS << 2);
+	cudaMemcpy(cpuInputMatrixf16, gpuInputMatrixf16, INPUTS << 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuWeightMatrixf16, gpuWeightMatrixf16, INPUTS * OUTPUTS << 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuOutputMatrixf16, gpuProductMatrixf16, OUTPUTS << 1, cudaMemcpyDeviceToHost);
+
+	float totalErrorf32 = 0.0f;
+	for (uint32_t i = 0; i < OUTPUTS; i++)
+	{
+		cpuCheckProductMatrixf32[i] = 0.0f;
+		for (uint32_t j = 0; j < INPUTS; j++)
+		{
+			cpuCheckProductMatrixf32[i] += __half2float(cpuInputMatrixf16[j]) * __half2float(cpuWeightMatrixf16[j * OUTPUTS + i]);
+		}
+		totalErrorf32 += std::abs(cpuCheckProductMatrixf32[i] - __half2float(cpuOutputMatrixf16[i]));
+	}
+	printf("Total error: %f\n\n", totalErrorf32 / OUTPUTS);
+	free(cpuCheckProductMatrixf32);
+
 	cudaFree(gpuInputMatrixf16);
 	cudaFree(gpuWeightMatrixf16);
 	cudaFree(gpuProductMatrixf16);
@@ -191,7 +232,7 @@ void f16(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t
 	curandDestroyGenerator(curandGenerator);
 }
 
-void f8(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t itrations = 1, const bool debug = false)
+void f8(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t BATCHES = 1, const uint32_t itrations = 1, const bool debug = false)
 {
 	cublasHandle_t cublasHandle;
 	cublasCreate(&cublasHandle);
@@ -220,15 +261,15 @@ void f8(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t 
 	__nv_fp8_e4m3* cpuOutputMatrixf8 = (__nv_fp8_e4m3*)malloc(OUTPUTS);
 	__nv_fp8_e4m3* cpuReluMatrixf8 = (__nv_fp8_e4m3*)malloc(OUTPUTS);
 
+	CurandGenerateUniformf8(curandGenerator, gpuInputMatrixf8, INPUTS);
+	CurandGenerateUniformf8(curandGenerator, gpuWeightMatrixf8, INPUTS * OUTPUTS);
+
+	const __nv_fp8_e4m3 alpha = __nv_fp8_e4m3(1.0f);
+	const __nv_fp8_e4m3 beta = __nv_fp8_e4m3(0.0f);
+
 	cudaEventRecord(start);
 	for (uint32_t itr = itrations; itr--;)
 	{
-		CurandGenerateUniformf8(curandGenerator, gpuInputMatrixf8, INPUTS);
-		CurandGenerateUniformf8(curandGenerator, gpuWeightMatrixf8, INPUTS * OUTPUTS);
-
-		const __nv_fp8_e4m3 alpha = __nv_fp8_e4m3(1.0f);
-		const __nv_fp8_e4m3 beta = __nv_fp8_e4m3(0.0f);
-
 		cublasGemmStridedBatchedEx
 		(
 			cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
@@ -238,7 +279,7 @@ void f8(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t 
 			gpuInputMatrixf8, CUDA_R_8F_E4M3, INPUTS, 0,
 			&beta,
 			gpuProductMatrixf8, CUDA_R_8F_E4M3, OUTPUTS, 0,
-			1, CUDA_R_8F_E4M3, CUBLAS_GEMM_DEFAULT
+			BATCHES, CUDA_R_8F_E4M3, CUBLAS_GEMM_DEFAULT
 		);
 
 		Reluf8(gpuProductMatrixf8, gpuReluMatrixf8, OUTPUTS);
@@ -261,6 +302,25 @@ void f8(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t 
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("Time taken for F8Default: %f ms\n", milliseconds);
 
+	// error checking
+	float* cpuCheckProductMatrixf32 = (float*)malloc(OUTPUTS << 2);
+	cudaMemcpy(cpuInputMatrixf8, gpuInputMatrixf8, INPUTS, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuWeightMatrixf8, gpuWeightMatrixf8, INPUTS * OUTPUTS, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuOutputMatrixf8, gpuProductMatrixf8, OUTPUTS, cudaMemcpyDeviceToHost);
+
+	float totalErrorf32 = 0.0f;
+	for (uint32_t i = 0; i < OUTPUTS; i++)
+	{
+		cpuCheckProductMatrixf32[i] = 0.0f;
+		for (uint32_t j = 0; j < INPUTS; j++)
+		{
+			cpuCheckProductMatrixf32[i] += (float)cpuInputMatrixf8[j] * (float)cpuWeightMatrixf8[j * OUTPUTS + i];
+		}
+		totalErrorf32 += std::abs(cpuCheckProductMatrixf32[i] - (float)cpuOutputMatrixf8[i]);
+	}
+	printf("Total error: %f\n\n", totalErrorf32 / OUTPUTS);
+	free(cpuCheckProductMatrixf32);
+
 	cudaFree(gpuInputMatrixf8);
 	cudaFree(gpuWeightMatrixf8);
 	cudaFree(gpuProductMatrixf8);
@@ -277,9 +337,19 @@ void f8(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t 
 
 int main()
 {
-	f32(64 * 64, 64 * 64, 10);
-	f16(64 * 64, 64 * 64, 10);
-	f8(64 * 64, 64 * 64, 10);	// I belive this only works with the new hopper architecture
+	// f32(64 * 64, 64 * 64, 16);
+	// f16(64 * 64, 64 * 64, 16);
+	// f8(64 * 64, 64 * 64, 16);
+	// return 0;
+
+	f32(64 * 64, 64 * 64, 16);
+	f16(64 * 64, 64 * 64, 16);
+	f8(64 * 64, 64 * 64, 16);
+	return 0;
+
+	f32(64 * 64 * 64, 64 * 64 * 64, 64, 1);
+	f16(64 * 64 * 64, 64 * 64 * 64, 64, 1);
+	f8(64 * 64 * 64, 64 * 64 * 64, 64, 1);	// I belive this only works with the new hopper architecture
 
 	return 0;
 }
