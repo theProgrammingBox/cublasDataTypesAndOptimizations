@@ -23,7 +23,8 @@ IMPORTANT LESSONS
 1. f8 only works with the nvidia hopper architecture (i dont have that so i couldnt test it)
 2. f16 is about twise as fast as f32 (I did not really test batches and over intervals yet)
 3. if the f8 error is very large, it probably means that the gemm is not working properly due to non hopper architecture or a bug cuz i couldnt test it
-4. create seperate cublasHandle and curandGenerator for each gemm. This can be optimized down because I only tested if it works. i think we only need 1 curandGenerator 
+4. create seperate cublasHandle and curandGenerator for each gemm. This can be optimized down because I only tested if it works. i think we only need 1 curandGenerator
+5. batches is faster then iterations. you just need some sort of data with a set stride. rn, I just used the same data for each batch by using 0 as the stride
 */
 
 void f32(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t BATCHES = 1, const uint32_t itrations = 1, const bool debug = false)
@@ -337,19 +338,23 @@ void f8(const uint32_t INPUTS = 16, const uint32_t OUTPUTS = 16, const uint32_t 
 
 int main()
 {
-	// f32(64 * 64, 64 * 64, 16);
-	// f16(64 * 64, 64 * 64, 16);
-	// f8(64 * 64, 64 * 64, 16);
-	// return 0;
+	//  f32(64 * 64, 64 * 64);
+	//  f16(64 * 64, 64 * 64);
+	//  f8(64 * 64, 64 * 64);
+	//  return 0;
 
-	f32(64 * 64, 64 * 64, 16);
-	f16(64 * 64, 64 * 64, 16);
-	f8(64 * 64, 64 * 64, 16);
+	f32(64 * 64, 64 * 64, 10);
+	f16(64 * 64, 64 * 64, 10);
+	f8(64 * 64, 64 * 64, 10);
+	return 0;
+
+	f32(64 * 64, 64 * 64, 1, 10);
+	f16(64 * 64, 64 * 64, 1, 10);
+	f8(64 * 64, 64 * 64, 1, 10);
 	return 0;
 
 	f32(64 * 64 * 64, 64 * 64 * 64, 64, 1);
 	f16(64 * 64 * 64, 64 * 64 * 64, 64, 1);
-	f8(64 * 64 * 64, 64 * 64 * 64, 64, 1);	// I belive this only works with the new hopper architecture
-
+	f8(64 * 64 * 64, 64 * 64 * 64, 64, 1);
 	return 0;
 }
