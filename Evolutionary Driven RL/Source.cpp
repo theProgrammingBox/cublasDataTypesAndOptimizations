@@ -32,15 +32,15 @@ int main()
 	curandCreateGenerator(&curandGenerator, CURAND_RNG_PSEUDO_DEFAULT);
 	curandSetPseudoRandomGeneratorSeed(curandGenerator, std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
-	const uint32_t INPUTS = 17;
-	const uint32_t OUTPUTS = 17;
+	const uint32_t INPUTS = 64;
+	const uint32_t OUTPUTS = 64;
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 	float milliseconds;
 
-	__nv_fp8_e4m3* gpuInputMatrixf8;
+	/*__nv_fp8_e4m3* gpuInputMatrixf8;
 	__nv_fp8_e4m3* gpuWeightMatrixf8;
 	__nv_fp8_e4m3* gpuProductMatrixf8;
 	__nv_fp8_e4m3* gpuReluMatrixf8;
@@ -78,7 +78,7 @@ int main()
 
 		Reluf8(gpuProductMatrixf8, gpuReluMatrixf8, OUTPUTS);
 
-		/*cudaMemcpy(cpuInputMatrixf8, gpuInputMatrixf8, INPUTS, cudaMemcpyDeviceToHost);
+		cudaMemcpy(cpuInputMatrixf8, gpuInputMatrixf8, INPUTS, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuWeightMatrixf8, gpuWeightMatrixf8, INPUTS * OUTPUTS, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuOutputMatrixf8, gpuProductMatrixf8, OUTPUTS, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuReluMatrixf8, gpuReluMatrixf8, OUTPUTS, cudaMemcpyDeviceToHost);
@@ -86,7 +86,7 @@ int main()
 		PrintMatrixf8(cpuInputMatrixf8, 1, INPUTS, "Input");
 		PrintMatrixf8(cpuWeightMatrixf8, INPUTS, OUTPUTS, "Weight");
 		PrintMatrixf8(cpuOutputMatrixf8, 1, OUTPUTS, "Output");
-		PrintMatrixf8(cpuReluMatrixf8, 1, OUTPUTS, "Relu");*/
+		PrintMatrixf8(cpuReluMatrixf8, 1, OUTPUTS, "Relu");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -101,70 +101,7 @@ int main()
 	free(cpuInputMatrixf8);
 	free(cpuWeightMatrixf8);
 	free(cpuOutputMatrixf8);
-	free(cpuReluMatrixf8);
-
-	__half* gpuInputMatrixf16;
-	__half* gpuWeightMatrixf16;
-	__half* gpuProductMatrixf16;
-	__half* gpuReluMatrixf16;
-
-	cudaMalloc(&gpuInputMatrixf16, INPUTS << 1);
-	cudaMalloc(&gpuWeightMatrixf16, INPUTS * OUTPUTS << 1);
-	cudaMalloc(&gpuProductMatrixf16, OUTPUTS << 1);
-	cudaMalloc(&gpuReluMatrixf16, OUTPUTS << 1);
-
-	__half* cpuInputMatrixf16 = (__half*)malloc(INPUTS << 1);
-	__half* cpuWeightMatrixf16 = (__half*)malloc(INPUTS * OUTPUTS << 1);
-	__half* cpuOutputMatrixf16 = (__half*)malloc(OUTPUTS << 1);
-	__half* cpuReluMatrixf16 = (__half*)malloc(OUTPUTS << 1);
-
-	cudaEventRecord(start);
-	for (uint32_t itr = 100000; itr--;)
-	{
-		CurandGenerateUniformf16(curandGenerator, gpuInputMatrixf16, INPUTS);
-		CurandGenerateUniformf16(curandGenerator, gpuWeightMatrixf16, INPUTS * OUTPUTS);
-
-		const __half alpha = 1.0f;
-		const __half beta = 0.0f;
-
-		cublasGemmStridedBatchedEx
-		(
-			cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
-			OUTPUTS, 1, INPUTS,
-			&alpha,
-			gpuWeightMatrixf16, CUDA_R_16F, OUTPUTS, 0,
-			gpuInputMatrixf16, CUDA_R_16F, INPUTS, 0,
-			&beta,
-			gpuProductMatrixf16, CUDA_R_16F, OUTPUTS, 0,
-			1, CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP
-		);
-
-		Reluf16(gpuProductMatrixf16, gpuReluMatrixf16, OUTPUTS);
-
-		/*cudaMemcpy(cpuInputMatrixf16, gpuInputMatrixf16, INPUTS << 1, cudaMemcpyDeviceToHost);
-		cudaMemcpy(cpuWeightMatrixf16, gpuWeightMatrixf16, INPUTS * OUTPUTS << 1, cudaMemcpyDeviceToHost);
-		cudaMemcpy(cpuOutputMatrixf16, gpuProductMatrixf16, OUTPUTS << 1, cudaMemcpyDeviceToHost);
-		cudaMemcpy(cpuReluMatrixf16, gpuReluMatrixf16, OUTPUTS << 1, cudaMemcpyDeviceToHost);
-
-		PrintMatrixf16(cpuInputMatrixf16, 1, INPUTS, "Input");
-		PrintMatrixf16(cpuWeightMatrixf16, INPUTS, OUTPUTS, "Weight");
-		PrintMatrixf16(cpuOutputMatrixf16, 1, OUTPUTS, "Output");
-		PrintMatrixf16(cpuReluMatrixf16, 1, OUTPUTS, "Relu");*/
-	}
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("Time taken for F16Default: %f ms\n", milliseconds);
-
-	cudaFree(gpuInputMatrixf16);
-	cudaFree(gpuWeightMatrixf16);
-	cudaFree(gpuProductMatrixf16);
-	cudaFree(gpuReluMatrixf16);
-
-	free(cpuInputMatrixf16);
-	free(cpuWeightMatrixf16);
-	free(cpuOutputMatrixf16);
-	free(cpuReluMatrixf16);
+	free(cpuReluMatrixf8);*/
 
 	float* gpuInputMatrixf32;
 	float* gpuWeightMatrixf32;
@@ -181,28 +118,30 @@ int main()
 	float* cpuOutputMatrixf32 = (float*)malloc(OUTPUTS << 2);
 	float* cpuReluMatrixf32 = (float*)malloc(OUTPUTS << 2);
 
+	const float alphaf32 = 1.0f;
+	const float betaf32 = 0.0f;
+
 	cudaEventRecord(start);
 	for (uint32_t itr = 100000; itr--;)
 	{
-		CurandGenerateUniformf32(curandGenerator, gpuInputMatrixf32, INPUTS);
-		CurandGenerateUniformf32(curandGenerator, gpuWeightMatrixf32, INPUTS * OUTPUTS);
-
-		const float alpha = 1.0f;
-		const float beta = 0.0f;
+		/*CurandGenerateUniformf32(curandGenerator, gpuInputMatrixf32, INPUTS);
+		CurandGenerateUniformf32(curandGenerator, gpuWeightMatrixf32, INPUTS * OUTPUTS);*/
+		cudaMemset(gpuInputMatrixf32, 0, INPUTS << 2);
+		cudaMemset(gpuWeightMatrixf32, 0, INPUTS * OUTPUTS << 2);
 
 		cublasGemmStridedBatchedEx
 		(
 			cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
 			OUTPUTS, 1, INPUTS,
-			&alpha,
+			&alphaf32,
 			gpuWeightMatrixf32, CUDA_R_32F, OUTPUTS, 0,
 			gpuInputMatrixf32, CUDA_R_32F, INPUTS, 0,
-			&beta,
+			&betaf32,
 			gpuProductMatrixf32, CUDA_R_32F, OUTPUTS, 0,
-			1, CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP
+			16, CUDA_R_32F, CUBLAS_GEMM_DEFAULT
 		);
 
-		Reluf32(gpuProductMatrixf32, gpuReluMatrixf32, OUTPUTS);
+		//Reluf32(gpuProductMatrixf32, gpuReluMatrixf32, OUTPUTS);
 
 		/*cudaMemcpy(cpuInputMatrixf32, gpuInputMatrixf32, INPUTS << 2, cudaMemcpyDeviceToHost);
 		cudaMemcpy(cpuWeightMatrixf32, gpuWeightMatrixf32, INPUTS * OUTPUTS << 2, cudaMemcpyDeviceToHost);
@@ -228,6 +167,71 @@ int main()
 	free(cpuWeightMatrixf32);
 	free(cpuOutputMatrixf32);
 	free(cpuReluMatrixf32);
+
+	__half* gpuInputMatrixf16;
+	__half* gpuWeightMatrixf16;
+	__half* gpuProductMatrixf16;
+	__half* gpuReluMatrixf16;
+
+	cudaMalloc(&gpuInputMatrixf16, INPUTS << 1);
+	cudaMalloc(&gpuWeightMatrixf16, INPUTS * OUTPUTS << 1);
+	cudaMalloc(&gpuProductMatrixf16, OUTPUTS << 1);
+	cudaMalloc(&gpuReluMatrixf16, OUTPUTS << 1);
+
+	__half* cpuInputMatrixf16 = (__half*)malloc(INPUTS << 1);
+	__half* cpuWeightMatrixf16 = (__half*)malloc(INPUTS * OUTPUTS << 1);
+	__half* cpuOutputMatrixf16 = (__half*)malloc(OUTPUTS << 1);
+	__half* cpuReluMatrixf16 = (__half*)malloc(OUTPUTS << 1);
+
+	const __half alphaf16 = 1.0f;
+	const __half betaf16 = 0.0f;
+
+	cudaEventRecord(start);
+	for (uint32_t itr = 100000; itr--;)
+	{
+		/*CurandGenerateUniformf16(curandGenerator, gpuInputMatrixf16, INPUTS);
+		CurandGenerateUniformf16(curandGenerator, gpuWeightMatrixf16, INPUTS * OUTPUTS);*/
+		cudaMemset(gpuInputMatrixf16, 0, INPUTS << 1);
+		cudaMemset(gpuWeightMatrixf16, 0, INPUTS * OUTPUTS << 1);
+
+		cublasGemmStridedBatchedEx
+		(
+			cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
+			OUTPUTS, 1, INPUTS,
+			&alphaf16,
+			gpuWeightMatrixf16, CUDA_R_16F, OUTPUTS, 0,
+			gpuInputMatrixf16, CUDA_R_16F, INPUTS, 0,
+			&betaf16,
+			gpuProductMatrixf16, CUDA_R_16F, OUTPUTS, 0,
+			16, CUDA_R_16F, CUBLAS_GEMM_DEFAULT
+		);
+
+		//Reluf16(gpuProductMatrixf16, gpuReluMatrixf16, OUTPUTS);
+
+		/*cudaMemcpy(cpuInputMatrixf16, gpuInputMatrixf16, INPUTS << 1, cudaMemcpyDeviceToHost);
+		cudaMemcpy(cpuWeightMatrixf16, gpuWeightMatrixf16, INPUTS * OUTPUTS << 1, cudaMemcpyDeviceToHost);
+		cudaMemcpy(cpuOutputMatrixf16, gpuProductMatrixf16, OUTPUTS << 1, cudaMemcpyDeviceToHost);
+		cudaMemcpy(cpuReluMatrixf16, gpuReluMatrixf16, OUTPUTS << 1, cudaMemcpyDeviceToHost);
+
+		PrintMatrixf16(cpuInputMatrixf16, 1, INPUTS, "Input");
+		PrintMatrixf16(cpuWeightMatrixf16, INPUTS, OUTPUTS, "Weight");
+		PrintMatrixf16(cpuOutputMatrixf16, 1, OUTPUTS, "Output");
+		PrintMatrixf16(cpuReluMatrixf16, 1, OUTPUTS, "Relu");*/
+	}
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("Time taken for F16Default: %f ms\n", milliseconds);
+
+	cudaFree(gpuInputMatrixf16);
+	cudaFree(gpuWeightMatrixf16);
+	cudaFree(gpuProductMatrixf16);
+	cudaFree(gpuReluMatrixf16);
+
+	free(cpuInputMatrixf16);
+	free(cpuWeightMatrixf16);
+	free(cpuOutputMatrixf16);
+	free(cpuReluMatrixf16);
 
 	cublasDestroy(cublasHandle);
 	curandDestroyGenerator(curandGenerator);
